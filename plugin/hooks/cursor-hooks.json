@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": "python3 ./hooks/omen_gate.py",
+        "timeout": 15000,
+        "failClosed": true
+      }
+    ]
+  }
+}

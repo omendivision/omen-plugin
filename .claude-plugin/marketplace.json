@@ -1,0 +1,33 @@
+{
+  "name": "omen",
+  "owner": {
+    "name": "Omen",
+    "url": "https://usefirmware.com"
+  },
+  "metadata": {
+    "description": "Grounded firmware tooling for coding agents: datasheet citations, real schematic connectivity, and a review gate that blocks a bad flash.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "omen-gate",
+      "source": "./plugin",
+      "description": "Blocks a firmware flash until an adversarial review of the change exists, using the parsed schematic as ground truth. The review runs on your machine; only the findings leave it.",
+      "version": "0.1.0",
+      "author": {
+        "name": "usefirmware.com",
+        "url": "https://usefirmware.com"
+      },
+      "homepage": "https://usefirmware.com",
+      "license": "MIT",
+      "keywords": [
+        "firmware",
+        "embedded",
+        "code-review",
+        "kicad",
+        "altium",
+        "safety"
+      ]
+    }
+  ]
+}
