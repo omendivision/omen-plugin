@@ -43,7 +43,6 @@ RUNNERS = [
     ("claude", ["claude", "-p", "--output-format", "text",
                 "--allowedTools", *_OMEN_TOOLS]),
     ("codex", ["codex", "exec"]),
-    ("cursor-agent", ["cursor-agent", "-p"]),
 ]
 
 PROMPT = """You are reviewing a firmware change that is about to be flashed
@@ -145,7 +144,7 @@ def main() -> None:
         return
     chosen = pick_runner()
     if chosen is None:
-        report_failure("no agent CLI found on PATH (claude/codex/cursor-agent)")
+        report_failure("no agent CLI found on PATH (claude/codex)")
     name, argv = chosen
 
     prompt = PROMPT.format(

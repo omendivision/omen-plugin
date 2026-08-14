@@ -20,7 +20,7 @@ findings are sent, so a blocked agent can be told why.
 /plugin install omen-gate@omen
 ```
 
-**Codex CLI and Cursor** — neither has a plugin system, so use the CLI:
+**Codex CLI** — no plugin system, so use the CLI:
 
 ```
 pipx install omen-tools && omen install
@@ -28,6 +28,9 @@ pipx install omen-tools && omen install
 
 `omen install` detects which agents are on the machine and wires each one.
 `uv tool install omen-tools` works too if you'd rather not install pipx.
+
+Cursor is not supported: it is the one client with no OAuth dynamic client
+registration, so its MCP auth needs a static client we have not stood up.
 
 Both routes need `python3` on your PATH, and an Omen API token — get one at
 [usefirmware.com](https://usefirmware.com) and connect the MCP server; the gate
@@ -48,8 +51,12 @@ Bring-up sometimes means flashing something you know is wrong.
 /omen-enable-review   # turn it back on now
 ```
 
-`OMEN_SKIP_VERIFY=1` skips a single command, and works when the service is
-unreachable. The window expires by itself on purpose — a gate you can turn off
+`OMEN_SKIP_VERIFY=1 west flash` skips a single command.
+
+If the review service is unreachable the flash is **allowed**, with a loud
+warning that it was never reviewed — being offline on a bench or a plane
+should not stop you flashing a board. The trade is deliberate: disconnecting
+is a bypass, but it is never a silent one. The window expires by itself on purpose — a gate you can turn off
 permanently is one you turn off once and never turn back on.
 
 ## What it sends

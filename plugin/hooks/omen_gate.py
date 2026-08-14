@@ -8,7 +8,7 @@ dependency here would be a broken gate rather than an error anyone sees.
 Speaks three dialects from one script:
 
     Claude Code / Codex   PreToolUse        stdin {tool_name, tool_input}
-    Cursor                beforeShellExecution   stdin {command, cwd}
+
 
 Two rules the adversarial review paid for:
 
@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 import urllib.error
@@ -40,7 +41,6 @@ from omen_gate_lib import source, triggers  # noqa: E402
 API_BASE = os.environ.get("OMEN_API_BASE", "https://api-v1.usefirmware.com")
 DEADLINE_S = float(os.environ.get("OMEN_GATE_DEADLINE", "5"))
 SKIP_ENV = "OMEN_SKIP_VERIFY"
-CONFIG = ".omen/gate.json"
 
 
 # ---- client dialects ---------------------------------------------------
@@ -51,8 +51,6 @@ def read_event() -> tuple[str, str, str]:
         raw = json.load(sys.stdin)
     except Exception:
         return "", "", "unknown"
-    if "command" in raw:                       # Cursor
-        return raw.get("command") or "", raw.get("cwd") or "", "cursor"
     tool_input = raw.get("tool_input") or {}   # Claude Code / Codex
     return (tool_input.get("command") or "",
             raw.get("cwd") or os.getcwd(), "claude")
@@ -63,6 +61,33 @@ def allow() -> None:
     sys.exit(0)
 
 
+def _skip_in_command(command: str) -> bool:
+    """Honour `OMEN_SKIP_VERIFY=1 west flash`.
+
+    We print that exact line as the escape hatch in every deny message, and
+    it did not work: the env assignment applies to the `west` process, while
+    this hook is a SIBLING process the client spawns with the session
+    environment. So the engineer followed our instructions, got blocked
+    again, and reasonably concluded the gate was broken.
+
+    `classify` already strips leading assignments so the command still reads
+    as a flash; we read them here rather than discard them.
+    """
+    for token in shlex.split(command)[:8] if command else []:
+        if "=" not in token:
+            break                       # past the assignment prefix
+        name, _, value = token.partition("=")
+        if name == SKIP_ENV and value not in ("", "0", "false", "no"):
+            return True
+    return False
+
+
+def warn(message: str) -> None:
+    """Say it on stderr and continue. Used where we let a flash through that
+    we could not verify — the engineer must know, but must not be stopped."""
+    sys.stderr.write(message + "\n")
+
+
 def deny(message: str, dialect: str) -> None:
     """Block, in every dialect, and ALWAYS write stderr.
 
@@ -71,11 +96,7 @@ def deny(message: str, dialect: str) -> None:
     JSON is schema-invalid, so writing both is belt and braces.
     """
     sys.stderr.write(message + "\n")
-    if dialect == "cursor":
-        payload = {"permission": "deny", "agent_message": message,
-                   "user_message": message}
-    else:
-        payload = {"hookSpecificOutput": {
+    payload = {"hookSpecificOutput": {
             "hookEventName": "PreToolUse",
             "permissionDecision": "deny",
             "permissionDecisionReason": message}}
@@ -86,14 +107,12 @@ def deny(message: str, dialect: str) -> None:
 # ---- server ------------------------------------------------------------
 
 def _token() -> str | None:
-    """The bearer token, from the client's own MCP configuration. Three
-    clients, three formats; we look rather than ask the user to duplicate
-    a secret into a second place."""
+    """The bearer token, from the client's own MCP configuration. We look
+    rather than ask the user to duplicate a secret into a second place."""
     if os.environ.get("OMEN_TOKEN"):
         return os.environ["OMEN_TOKEN"]
     home = Path.home()
-    candidates = [home / ".claude.json", home / ".codex" / "config.json",
-                  home / ".cursor" / "mcp.json"]
+    candidates = [home / ".claude.json", home / ".codex" / "config.json"]
     for path in candidates:
         try:
             blob = json.loads(path.read_text())
@@ -176,7 +195,7 @@ def report_near_miss(command: str) -> None:
         if not token:
             return
         req = urllib.request.Request(
-            f"{API}/review/near-miss", method="POST",
+            f"{API_BASE}/review/near-miss", method="POST",
             data=json.dumps({"head": head}).encode(),
             headers={"Authorization": f"Bearer {token}",
                      "Content-Type": "application/json"})
@@ -196,19 +215,17 @@ def main() -> None:
         allow()                                  # ~99% of commands, free
 
     root = cwd or os.getcwd()
-    config = {}
-    try:
-        config = json.loads((Path(root) / CONFIG).read_text())
-    except Exception:
-        pass
-    design_id = config.get("design_id")
+    # No local config. This used to read .omen/gate.json for a design_id,
+    # a file nothing ever wrote — so every review ran with no schematic.
+    # The server resolves the board from the designs the user owns.
+    design_id = None
 
     warm = outcome == triggers.WARM
     token = _token()
 
     # The local escape hatch, for when we are unreachable — the server-side
     # /omen-skip-review window is checked by the gate call itself.
-    if os.environ.get(SKIP_ENV):
+    if os.environ.get(SKIP_ENV) or _skip_in_command(command):
         allow()
 
     if token is None:
@@ -229,11 +246,19 @@ def main() -> None:
              "fingerprint": files},
             token)
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
-        if warm:
-            allow()                              # never fail a build
-        deny(f"Omen: could not reach the review service in {DEADLINE_S:.0f}s "
-             f"({type(exc).__name__}) — this build is unreviewed and nothing "
-             f"has been flashed. Retry, or {SKIP_ENV}=1 to proceed.", dialect)
+        # Unreachable is not the same as unsafe. Blocking here strands an
+        # engineer who is offline with the board in front of them, and the
+        # two documented escapes need the network too — so the gate would
+        # have had no way out at all. We allow, loudly: the engineer is told
+        # in plain terms that this flash was never reviewed.
+        #
+        # The cost, stated: disconnecting is now a bypass. That is a
+        # deliberate trade — an unusable gate gets uninstalled, and an
+        # uninstalled gate reviews nothing.
+        warn(f"Omen: review service unreachable ({type(exc).__name__}) — "
+             f"FLASHING UNREVIEWED. This change has not been checked "
+             f"against your schematic.")
+        allow()
     except Exception as exc:                     # our own bug
         if warm:
             allow()

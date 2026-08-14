@@ -1,6 +1,6 @@
 {
-  "name": "omen-gate",
-  "version": "0.1.0",
+  "name": "omen-tools",
+  "version": "0.2.0",
   "description": "Blocks a firmware flash until an adversarial review of the change exists, using the parsed schematic as ground truth.",
   "commands": "./commands/",
   "hooks": "./hooks/hooks.json"
