@@ -17,7 +17,7 @@ findings are sent, so a blocked agent can be told why.
 
 ```
 /plugin marketplace add omendivision/omen-plugin
-/plugin install omen-gate@omen
+/plugin install omen-tools@omen
 ```
 
 **Codex CLI** — no plugin system, so use the CLI:
@@ -56,7 +56,9 @@ Bring-up sometimes means flashing something you know is wrong.
 If the review service is unreachable the flash is **allowed**, with a loud
 warning that it was never reviewed — being offline on a bench or a plane
 should not stop you flashing a board. The trade is deliberate: disconnecting
-is a bypass, but it is never a silent one. The window expires by itself on purpose — a gate you can turn off
+is a bypass, but it is never a silent one.
+
+The skip window expires by itself on purpose — a gate you can turn off
 permanently is one you turn off once and never turn back on.
 
 ## What it sends
