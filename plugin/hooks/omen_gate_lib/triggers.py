@@ -68,6 +68,22 @@ _FLASH_VERBS: dict[str, set[str] | None] = {
     "make": {"flash", "program", "upload", "erase", "burn"},
     "pio": {"upload"},
     "platformio": {"upload"},
+    # ESPHome writes firmware to a live ESP32 over USB or OTA. `run` both
+    # compiles AND uploads, so it is a flash, not a build. Found missing by
+    # installing the gate on a real ESPHome project: `esphome upload`
+    # classified as `none` and went straight through to the board.
+    "esphome": {"upload", "run"},
+    # Espressif's newer unified CLI, same shape as idf.py
+    "esp-idf": {"flash"},
+    # Nordic's replacement for nrfjprog
+    "nrfutil-device": {"program"},
+    # Raspberry Pi Pico / OpenOCD-adjacent loaders
+    "picotool-load": None,
+    "uf2conv": None,
+    "uf2conv.py": None,
+    # Segger's newer CLI
+    "jlink_commander": {"loadfile"},
+    # Black Magic Probe / generic gdb load is handled by _WRITE_PATTERNS
 }
 
 _BUILD_VERBS: dict[str, set[str] | None] = {
@@ -79,6 +95,9 @@ _BUILD_VERBS: dict[str, set[str] | None] = {
     "ninja": None,
     "pio": {"run"},
     "platformio": {"run"},
+    # `esphome compile` builds only; `run` is in the flash table and GATE
+    # wins over WARM when a command matches both.
+    "esphome": {"compile"},
 }
 
 # Irreversible-silicon signatures. Matched on the VALUE, and only when the
@@ -253,10 +272,26 @@ def classify(command: str) -> tuple[str, str | None]:
             continue
         tool = _basename(argv[0])
         args = argv[1:]
-        # `python -m esptool …`, `uv run west …`: step past the runner
+        # `python -m esptool …`, `uv run west …`: step past the runner.
+        #
+        # Runner FLAGS have to be stepped past too, and separately from the
+        # subcommands. A real agent reached for
+        # `uvx --from esphome esphome upload` unprompted — the package name
+        # after --from is not the tool, so stopping there classified a live
+        # flash as NONE. Plain `uvx esphome upload` was fine, which is why
+        # this survived the test suite.
         while tool in ("python", "python3", "uv", "uvx", "poetry", "pipx",
                        "npx", "bunx") and args:
-            if args[0] in ("-m", "run", "exec"):
+            if args[0] in ("-m", "run", "exec", "tool"):
+                args = args[1:]
+                continue
+            # flags that consume the NEXT token as a value
+            if args[0] in ("--from", "--with", "--package", "-p", "--spec",
+                           "--index", "--python", "--project"):
+                args = args[2:]
+                continue
+            # bare flags (--quiet, --isolated, --no-cache, -q)
+            if args[0].startswith("-"):
                 args = args[1:]
                 continue
             tool, args = _basename(args[0]), args[1:]
