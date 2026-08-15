@@ -1,5 +1,5 @@
 {
   "name": "omen-tools",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Blocks a firmware flash until an adversarial review of the change exists, using the parsed schematic as ground truth."
 }

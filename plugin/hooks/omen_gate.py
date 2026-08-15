@@ -227,7 +227,7 @@ def main() -> None:
     token = _token()
 
     # The local escape hatch, for when we are unreachable — the server-side
-    # /omen-skip-review window is checked by the gate call itself.
+    # /omen-tools:skip-review window is checked by the gate call itself.
     if os.environ.get(SKIP_ENV) or _skip_in_command(command):
         allow()
 
@@ -306,7 +306,7 @@ def main() -> None:
                 lines.append(f"           {f['evidence']}")
         lines += ["",
                   f"  {len(blocking)} blocker(s). Nothing has been flashed.",
-                  f"  /omen-skip-review to pause the gate  ·  "
+                  f"  /omen-tools:skip-review to pause the gate  ·  "
                   f"{SKIP_ENV}=1 for this one flash"]
         deny("\n".join(lines), dialect)
 

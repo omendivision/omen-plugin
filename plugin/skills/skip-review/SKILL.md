@@ -23,4 +23,4 @@ yourself is not a gate. Only run it when the user explicitly typed the
 skip command or explicitly asked to pause the gate.
 
 Then tell the user, in one line, when the gate comes back and that
-`/omen-enable-review` restores it early.
+`/omen-tools:enable-review` restores it early.

@@ -72,7 +72,7 @@ def main() -> int:
     except Exception:  # noqa: BLE001
         tok = None
     say(bool(tok), "API token discoverable"
-        + ("" if tok else " — connect the omen MCP (see /omen-setup); "
+        + ("" if tok else " — connect the omen MCP (see /omen-tools:setup); "
                           "until then every flash is denied"))
 
     # 4. Claude: plugin enabled?
