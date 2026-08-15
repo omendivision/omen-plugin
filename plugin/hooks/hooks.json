@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/omen_gate.py\"",
+            "command": "sh -c 'exec \"$(command -v python3 || command -v python || echo /usr/bin/python3)\" \"$0\"' \"${CLAUDE_PLUGIN_ROOT}/hooks/omen_gate.py\"",
             "timeout": 15,
             "statusMessage": "Omen review gate..."
           }

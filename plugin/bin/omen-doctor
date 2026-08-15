@@ -1,0 +1,5 @@
+#!/bin/sh
+# Is the Omen review gate actually armed? Safe to run any time.
+HERE="$(cd "$(dirname "$0")/.." && pwd)"
+PY="$(command -v python3 || command -v python || echo /usr/bin/python3)"
+exec "$PY" "$HERE/hooks/doctor.py" "$@"

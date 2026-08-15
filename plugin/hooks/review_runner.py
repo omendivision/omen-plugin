@@ -42,7 +42,10 @@ _OMEN_TOOLS = ["mcp__omen__get_schematic", "mcp__omen__query",
 RUNNERS = [
     ("claude", ["claude", "-p", "--output-format", "text",
                 "--allowedTools", *_OMEN_TOOLS]),
-    ("codex", ["codex", "exec"]),
+    # codex exec is OUT until headless MCP-tool access is proven: it has
+    # no --allowedTools equivalent (verified against codex 0.146), so a
+    # codex-run review silently loses the oracle — the exact confident-
+    # plausibility failure the allow-list exists to prevent.
 ]
 
 PROMPT = """You are reviewing a firmware change that is about to be flashed
@@ -111,10 +114,31 @@ def report_failure(reason: str) -> None:
     sys.exit(0)
 
 
+_BIN_DIRS = ["~/.local/bin", "/usr/local/bin", "/opt/homebrew/bin",
+             "~/.claude/local", "/usr/bin"]
+
+
+def _find_binary(name: str) -> str | None:
+    """shutil.which PLUS the places GUI-trimmed PATHs miss — a hook
+    fired from a desktop-launched harness inherits a minimal PATH, and
+    a reviewer that cannot find `claude` releases the lease and the
+    flash proceeds unreviewed (adversarial review P6)."""
+    found = shutil.which(name)
+    if found:
+        return found
+    import os
+    for d in _BIN_DIRS:
+        cand = os.path.expanduser(f"{d}/{name}")
+        if os.path.isfile(cand) and os.access(cand, os.X_OK):
+            return cand
+    return None
+
+
 def pick_runner() -> tuple[str, list[str]] | None:
     for name, argv in RUNNERS:
-        if shutil.which(argv[0]):
-            return name, argv
+        binary = _find_binary(argv[0])
+        if binary:
+            return name, [binary, *argv[1:]]
     return None
 
 

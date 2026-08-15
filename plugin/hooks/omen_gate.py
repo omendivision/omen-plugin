@@ -112,7 +112,10 @@ def _token() -> str | None:
     if os.environ.get("OMEN_TOKEN"):
         return os.environ["OMEN_TOKEN"]
     home = Path.home()
-    candidates = [home / ".claude.json", home / ".codex" / "config.json"]
+    # all three locations the pipx finder knew (adversarial review P7:
+    # dropping settings.json silently regressed older MCP setups)
+    candidates = [home / ".claude.json", home / ".codex" / "config.json",
+                  home / ".claude" / "settings.json"]
     for path in candidates:
         try:
             blob = json.loads(path.read_text())

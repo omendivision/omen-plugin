@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Grounded firmware tooling for coding agents: datasheet citations, real schematic connectivity, and a review gate that blocks a bad flash.",
-    "version": "0.2.2"
+    "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "omen-tools",
       "source": "./plugin",
-      "description": "Blocks a firmware flash until an adversarial review of the change exists, using the parsed schematic as ground truth. The review runs on your machine; only the findings leave it.",
-      "version": "0.2.2",
+      "description": "Blocks a firmware flash until an adversarial review of the change exists, using the parsed schematic as ground truth. Works in Claude Code and Codex. The review runs on your machine; only the findings leave it.",
+      "version": "0.3.0",
       "author": {
         "name": "usefirmware.com",
         "url": "https://usefirmware.com"

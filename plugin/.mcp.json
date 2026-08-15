@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "omen": {
+      "type": "http",
+      "url": "https://api-v1.usefirmware.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${OMEN_TOKEN}"
+      }
+    }
+  }
+}
